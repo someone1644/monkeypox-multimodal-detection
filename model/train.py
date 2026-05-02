@@ -5,7 +5,6 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import confusion_matrix, classification_report
-import datetime
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.layers import Input, Dense, Dropout, GlobalAveragePooling2D, Concatenate
 from tensorflow.keras.models import Model
@@ -14,8 +13,6 @@ from tensorflow.keras.applications import Xception
 from tensorflow.keras.applications.xception import preprocess_input
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-if not os.path.exists(BASE_DIR):
-    os.makedirs(BASE_DIR)
 def build_xception_model_with_metadata(image_size=(128, 128, 3), dropout_rate=0.5):
     image_input = Input(shape=image_size, name="image_input")
     base_model = Xception(weights='imagenet', include_top=False, input_shape=image_size)
@@ -50,6 +47,8 @@ def create_multi_input_generators(train_df, val_df, image_size=(128, 128), batch
         class_mode='binary',
         shuffle=False
     )
+    print("Train samples:", train_img_gen.samples)
+    print("Validation samples:", val_img_gen.samples)
     def multi_generator(image_gen, df):
         metadata_cols = ['fever', 'lymph_nodes']
         while True:
@@ -104,20 +103,28 @@ def evaluate_model(model, val_df, batch_size=32, image_size=(128, 128)):
     conf_matrix = confusion_matrix(y_true, y_pred)
     plt.figure(figsize=(6, 6))
     sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues",
-                xticklabels=['Others', 'Monkeypox'],
-                yticklabels=['Others', 'Monkeypox'])
+                xticklabels=['Monkeypox', 'Others'],
+                yticklabels=['Monkeypox', 'Others'])
     plt.xlabel("Predicted")
     plt.ylabel("True")
     plt.title("Confusion Matrix")
     plt.show()
     print("\nClassification Report:")
-    print(classification_report(y_true, y_pred, target_names=['Others', 'Monkeypox'], zero_division=1))
+    print(classification_report(y_true, y_pred, target_names=['Monkeypox', 'Others'], zero_division=1))
 def main():
     print("1. Loading CSV Metadata...")
-    train_csv_path = os.path.join(BASE_DIR, "../data/train_metadata.csv")
-    val_csv_path = os.path.join(BASE_DIR, "../data/val_metadata.csv")
+    PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, ".."))
+    train_csv_path = os.path.join(PROJECT_ROOT, "train_metadata.csv")
+    val_csv_path = os.path.join(PROJECT_ROOT, "val_metadata.csv")
     train_df = pd.read_csv(train_csv_path)
     val_df = pd.read_csv(val_csv_path)
+    train_df["filename"] = train_df["filename"].apply(
+        lambda x: os.path.join(PROJECT_ROOT, x.replace("..\\", "").replace("../", ""))
+    )
+    val_df["filename"] = val_df["filename"].apply(
+        lambda x: os.path.join(PROJECT_ROOT, x.replace("..\\", "").replace("../", ""))
+    )
+    train_df = train_df.sample(frac=1, random_state=42).reset_index(drop=True)
     print("2. Initializing Multi-Input Generators...")
     batch_size = 32
     train_gen, val_gen, train_steps, val_steps = create_multi_input_generators(train_df, val_df, batch_size=batch_size)
@@ -131,9 +138,9 @@ def main():
     epochs = 20
     history = model.fit(
         train_gen,
-        steps_per_epoch=train_steps // batch_size,
+        steps_per_epoch=max(1,train_steps // batch_size),
         validation_data=val_gen,
-        validation_steps=val_steps // batch_size,
+        validation_steps=max(1,val_steps // batch_size),
         epochs=epochs,
         callbacks=callbacks
     )
@@ -141,8 +148,10 @@ def main():
     plot_metrics(history)
     evaluate_model(model, val_df, batch_size=batch_size)
     print("\n6. Saving Model...")
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-    model_save_path = os.path.join(BASE_DIR, "model.h5")
+    save_dir = os.path.join(BASE_DIR, "../saved_model")
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    model_save_path = os.path.join(save_dir, "model.h5")
     model.save(model_save_path)
     print(f"Model successfully saved to: {model_save_path}")
 if __name__ == "__main__":

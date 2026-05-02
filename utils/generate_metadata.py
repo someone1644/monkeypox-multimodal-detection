@@ -21,7 +21,8 @@ def generate_metadata_csvs():
             print(f"Scanning {class_name} images in: {folder_path}")
             for filename in os.listdir(folder_path):
                 if filename.lower().endswith(('.png', '.jpg', '.jpeg')):
-                    abs_path = os.path.join(folder_path, filename)
+                    PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, ".."))
+                    rel_path = os.path.relpath(os.path.join(folder_path, filename), PROJECT_ROOT)
                     if class_name == 'Monkeypox':
                         fever = np.random.choice([0, 1], p=[0.1, 0.9])
                         lymph = np.random.choice([0, 1], p=[0.2, 0.8])
@@ -29,7 +30,7 @@ def generate_metadata_csvs():
                         fever = np.random.choice([0, 1], p=[0.6, 0.4])
                         lymph = np.random.choice([0, 1], p=[0.9, 0.1])
                     data.append({
-                        'filename': abs_path,
+                        'filename': rel_path,
                         'class': class_name,
                         'fever': fever,
                         'lymph_nodes': lymph

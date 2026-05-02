@@ -49,7 +49,7 @@ def run_test_evaluation():
     print("1. Preparing Test Data...")
     test_df = generate_test_csv()
     print("2. Loading Model...")
-    model_path = os.path.join(BASE_DIR, "../model/model.h5")
+    model_path = os.path.join(BASE_DIR, "../saved_model/model.h5")
     model = tf.keras.models.load_model(model_path)
     datagen = ImageDataGenerator(preprocessing_function=preprocess_input)
     test_img_gen = datagen.flow_from_dataframe(

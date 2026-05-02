@@ -1,4 +1,4 @@
-import os as os
+import os
 import gradio as gr
 import numpy as np
 import tensorflow as tf
