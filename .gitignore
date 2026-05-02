@@ -1,6 +1,30 @@
+# Python
 __pycache__/
 *.pyc
+*.pyo
+
+# Virtual environment
+venv/
 .env
-.DS_Store
+
+# IDE
 .idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model file
 saved_model/model.h5
+
+# Dataset (DO NOT UPLOAD)
+data/train/
+data/val/
+data/test/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
